@@ -13,6 +13,10 @@ int main()
    placements = "000000520009000000000007100000000089900504002640000000004700000000000200028000000";
 
    SudokuBoard sudokuBoard( placements, KnightSudoku );
+   
+
+   std::cout << sudokuBoard << std::endl;
+
    if( sudokuBoard.IsBoardValid() )
    {
       std::cout << "Board is valid" << std::endl;
@@ -21,8 +25,6 @@ int main()
    {
       std::cout << "Board is invalid" << std::endl;
    }
-
-   std::cout << sudokuBoard << std::endl;
 
    SudokuSolver sudokuSolver( sudokuBoard );
    while( sudokuSolver.SolveOneStep() )

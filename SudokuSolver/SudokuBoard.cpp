@@ -2,6 +2,19 @@
 
 #include <algorithm>
 
+namespace
+{
+    bool AllUniqueNumbers( std::vector<int> numbers )
+    {
+        std::sort(std::begin(numbers), std::end(numbers));
+        auto pos = std::adjacent_find(std::begin(numbers), std::end(numbers));
+        if (pos != std::end(numbers))
+            return false;
+        // we have a duplicate
+        return true;
+    }
+}
+
 SudokuBoard::SudokuBoard( const std::string& placements, BoardType boardType /*= Traditional*/ )
 : _boardType( boardType )
 {
@@ -34,7 +47,7 @@ bool SudokuBoard::IsBoardValid() const
     for( int row=0; row < 9; row++)
     {
         std::vector<int> values = GetNumbersOnRow( row );
-        if( std::unique( values.begin(), values.end() ) != values.end() )
+        if( !AllUniqueNumbers( values ) )
         {
             return false;
         }
@@ -44,7 +57,7 @@ bool SudokuBoard::IsBoardValid() const
     for( int col=0; col < 9; col++)
     {
         std::vector<int> values = GetNumbersOnCol( col );
-        if( std::unique( values.begin(), values.end() ) != values.end() )
+        if( !AllUniqueNumbers( values ) )
         {
             return false;
         }
@@ -54,9 +67,28 @@ bool SudokuBoard::IsBoardValid() const
     for( int gridIndex=0; gridIndex < 9; gridIndex++)
     {
         std::vector<int> values = GetNumbersIn3x3Grid( gridIndex );
-        if( std::unique( values.begin(), values.end() ) != values.end() )
+        if( !AllUniqueNumbers( values ) )
         {
             return false;
+        }
+    }
+
+    if( _boardType == KnightSudoku )
+    {
+        for( int row=0; row < 9; row++)
+        {
+            for( int col=0; col<9; col++)
+            {
+                int value = GetAt( row, col );
+                if( value == 0 )
+                    continue;
+
+                std::vector<int> values = GetNumbersKnightsDistance( row, col );
+                if( std::find( values.begin(), values.end(), value ) != values.end() )
+                {
+                    return false;
+                }
+            }
         }
     }
 
