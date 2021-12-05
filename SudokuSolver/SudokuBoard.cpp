@@ -2,7 +2,8 @@
 
 #include <algorithm>
 
-SudokuBoard::SudokuBoard( const std::string& placements )
+SudokuBoard::SudokuBoard( const std::string& placements, BoardType boardType /*= Traditional*/ )
+: _boardType( boardType )
 {
     _placements.resize( 9*9, 0/*initial value*/ );
 
@@ -118,6 +119,27 @@ std::vector<int> SudokuBoard::GetNumbersIn3x3Grid( int gridIndex ) const
             result.push_back( value );
         }
     }
+    return result;
+}
+
+std::vector<int> SudokuBoard::GetNumbersKnightsDistance( int row, int col ) const
+{
+    std::vector<int> result;
+    std::vector<std::pair<int, int> > offsets{ {-2, -1 }, {-1, -2}, {1, -2}, {2, -1}, {-2, 1}, {-1, 2}, {1, 2}, {2, 1} };
+    for( const auto& offset : offsets )
+    {
+        int x = col + offset.first;
+        int y = row + offset.second;
+
+        if( x < 0 || x > 8 || y < 0 || y > 8 )
+            continue;
+
+        int value = GetAt( y, x );
+        if( value == 0)
+            continue;
+        result.push_back( value );
+    }
+
     return result;
 }
 

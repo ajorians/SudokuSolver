@@ -24,6 +24,11 @@ namespace
         RemoveTheseNumbers( possibleValues, sudokuBoard.GetNumbersOnRow( row ) );
         RemoveTheseNumbers( possibleValues, sudokuBoard.GetNumbersOnCol( col ) );
         RemoveTheseNumbers( possibleValues, sudokuBoard.GetNumbersIn3x3Grid( sudokuBoard.GetGridIndex( row, col) ) );
+
+        if( sudokuBoard.GetBoardType() == KnightSudoku )
+        {
+            RemoveTheseNumbers( possibleValues, sudokuBoard.GetNumbersKnightsDistance( row, col ) );
+        }
     }
 }
 
