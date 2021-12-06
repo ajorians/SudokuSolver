@@ -1,5 +1,4 @@
 #include "SudokuSolver.h"
-#include "SudokuBoard.h"
 
 #include <algorithm>
 #include <cassert>
@@ -67,9 +66,66 @@ namespace
 
         return false;
     }
+
+    bool CouldAnotherRowHaveValue( const SudokuBoard& sudokuBoard, int row, int col, int possibility )
+    {
+        for( int y = 0; y<9; y++)
+        {
+            if( y == row )
+                continue;
+
+            int value = sudokuBoard.GetAt( y, col );
+            if( value != 0)
+                continue;
+
+            if( CouldSpotHaveValue( sudokuBoard, y, col, possibility ) )
+                return true;
+        }
+
+        return false;
+    }
+
+    bool CouldAnotherColHaveValue( const SudokuBoard& sudokuBoard, int row, int col, int possibility )
+    {
+        for( int x = 0; x<9; x++)
+        {
+            if( x == col )
+                continue;
+
+            int value = sudokuBoard.GetAt( row, x );
+            if( value != 0)
+                continue;
+
+            if( CouldSpotHaveValue( sudokuBoard, row, x, possibility ) )
+                return true;
+        }
+
+        return false;
+    }
+
+    bool DoesEveryRowColHasAtLeastOnePossibility( const SudokuBoard& sudokuBoard )
+    {
+        for( int row = 0; row < 9; row++ )
+        {
+            for( int col = 0; col < 9; col++ )
+            {
+                int value = sudokuBoard.GetAt( row, col );
+                if( value != 0 )
+                    continue;
+
+                std::vector<int> possibleValues{ 1, 2, 3, 4, 5, 6, 7, 8, 9};
+                RemoveNumbersFromPossibilities( sudokuBoard, possibleValues, row, col );
+
+                if( possibleValues.empty() )
+                    return false;
+            }
+        }
+
+        return true;
+    }
 }
 
-SudokuSolver::SudokuSolver( SudokuBoard& sudokuBoard )
+SudokuSolver::SudokuSolver( const SudokuBoard& sudokuBoard )
 : _sudokuBoard( sudokuBoard )
 {
 
@@ -77,13 +133,25 @@ SudokuSolver::SudokuSolver( SudokuBoard& sudokuBoard )
 
 bool SudokuSolver::SolveOneStep()
 {
-   if( _sudokuBoard.IsBoardSolved() || !_sudokuBoard.IsBoardValid())
+   if( _sudokuBoard.IsBoardSolved() || !_sudokuBoard.IsBoardValid() )
       return false;
+
+    //Taking a guess can make it so cannot have any possibility for a spot
+   if( !DoesEveryRowColHasAtLeastOnePossibility( _sudokuBoard ) )
+   {
+       return false;
+   }
 
    if( SolveOneMissingValue() != false )
       return true;
 
     if( SolveOne3x3OnlySpotForValue() != false )
+        return true;
+
+    if( SolveOneRowColSpotForValue() != false )
+        return true;
+
+    if( SolveOneTryingPossibilities() != false)
         return true;
 
    //This means the puzzle is even harder.  Let's copy the board; make a guess and see if it becomes invalid ever
@@ -159,6 +227,121 @@ bool SudokuSolver::SolveOne3x3OnlySpotForValue()
    return false;
 }
 
+bool SudokuSolver::SolveOneRowColSpotForValue()
+{
+    if( _sudokuBoard.IsBoardSolved() || !_sudokuBoard.IsBoardValid())
+      return false;
+
+   for( int row = 0; row < 9; row++ )
+   {
+       for( int col = 0; col < 9; col++ )
+       {
+          int value = _sudokuBoard.GetAt( row, col );
+          if( value != 0 )
+             continue;
+
+            std::vector<int> possibleValues{ 1, 2, 3, 4, 5, 6, 7, 8, 9};
+            RemoveNumbersFromPossibilities( _sudokuBoard, possibleValues, row, col );
+
+            for( int possibility : possibleValues )
+            {
+                //Could this value work on a different spot in the same row?  If not it is this one
+                bool mustBeThisValue = !CouldAnotherRowHaveValue( _sudokuBoard, row, col, possibility );
+
+                if( !mustBeThisValue )
+                {
+                   mustBeThisValue = !CouldAnotherColHaveValue( _sudokuBoard, row, col, possibility );
+                }
+
+                if( !mustBeThisValue )
+                    continue;
+                
+                _sudokuBoard.SetAt( row, col, possibility );
+                if( _sudokuBoard.IsBoardValid() == false )
+                {
+                    assert(false);
+                }
+                return true;
+            }
+       }
+   }
+
+   return false;
+}
+
+bool SudokuSolver::SolveOneTryingPossibilities()
+{
+    if( _sudokuBoard.IsBoardSolved() || !_sudokuBoard.IsBoardValid())
+      return false;
+
+    std::vector< std::tuple< std::pair<int, int>, std::vector<int> > > possibilities;
+
+    for( int row = 0; row < 9; row++ )
+    {
+       for( int col = 0; col < 9; col++ )
+       {
+          int value = _sudokuBoard.GetAt( row, col );
+          if( value != 0 )
+             continue;
+
+            std::vector<int> possibleValues{ 1, 2, 3, 4, 5, 6, 7, 8, 9};
+            RemoveNumbersFromPossibilities( _sudokuBoard, possibleValues, row, col );
+
+            if( possibleValues.empty() )
+                return false;
+
+            std::tuple< std::pair<int, int>, std::vector<int> > possibility( std::pair<int, int>( row, col ), possibleValues );
+            possibilities.push_back( possibility );
+       }
+    }
+
+    std::sort( possibilities.begin(), possibilities.end(), []( const auto& a, const auto& b )
+    {
+        return std::get<1>(a).size() < std::get<1>(b).size();
+    });
+
+    for( const auto& possibility : possibilities )
+    {
+        std::vector<int> realPossibilities;
+
+        std::pair<int, int> location = std::get<0>( possibility );
+        std::vector<int> possibleValues = std::get<1>( possibility );
+        int row = location.first;
+        int col = location.second;
+
+        for( int possibleValue : possibleValues )
+        {
+            SudokuBoard copyOfBoard = _sudokuBoard;
+
+            copyOfBoard.SetAt(row, col, possibleValue);
+
+            //Does every row/col has at least a possibility
+            if( !DoesEveryRowColHasAtLeastOnePossibility( copyOfBoard ) )
+            {
+               continue;
+            }
+            if( copyOfBoard.IsBoardValid() == false )
+            {
+                continue;
+            }
+
+            realPossibilities.push_back( possibleValue );
+        }
+
+        if( realPossibilities.size() == 1 )
+        {
+            _sudokuBoard.SetAt( row, col, realPossibilities.front() );
+            if( _sudokuBoard.IsBoardValid() == false )
+            {
+                assert(false);
+            }
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool SudokuSolver::SolveOneTakingGuess()
 {
     if( _sudokuBoard.IsBoardSolved() || !_sudokuBoard.IsBoardValid())
@@ -177,6 +360,11 @@ bool SudokuSolver::SolveOneTakingGuess()
             std::vector<int> possibleValues{ 1, 2, 3, 4, 5, 6, 7, 8, 9};
             RemoveNumbersFromPossibilities( _sudokuBoard, possibleValues, row, col );
 
+            if( possibleValues.empty() )
+            {
+                return false;
+            }
+
             std::tuple< std::pair<int, int>, std::vector<int> > possibility( std::pair<int, int>( row, col ), possibleValues );
             possibilities.push_back( possibility );
        }
@@ -186,6 +374,8 @@ bool SudokuSolver::SolveOneTakingGuess()
     {
         return std::get<1>(a).size() < std::get<1>(b).size();
     });
+
+    std::vector<SudokuSolver> possibleSolvers;
 
     for( const auto& possibility : possibilities )
     {
@@ -200,14 +390,48 @@ bool SudokuSolver::SolveOneTakingGuess()
 
             copyOfBoard.SetAt(row, col, possibleValue);
 
-            SudokuSolver solver( copyOfBoard );
-            while( solver.SolveOneStep() );
-            if( solver.DidSolvePuzzle() )
+            //Does every row/col has at least a possibility
+            if( !DoesEveryRowColHasAtLeastOnePossibility( copyOfBoard ) )
             {
-                int correctValue = solver._sudokuBoard.GetAt( row, col );
-                _sudokuBoard.SetAt( row, col, correctValue );
-                return true;
+                assert(false);
+                continue;
             }
+
+            SudokuSolver solver( copyOfBoard );
+
+            possibleSolvers.push_back( solver );
+        }
+    }
+
+    for( int i=0; i<possibleSolvers.size(); i++ )
+    {
+        SudokuSolver& solver = possibleSolvers[i];
+
+        SudokuBoard boardWithSingleGuess = solver.GetBoardSolving();
+
+        while( solver.SolveOneMissingValue() || solver.SolveOne3x3OnlySpotForValue() || solver.SolveOneRowColSpotForValue() || solver.SolveOneTryingPossibilities() );
+
+        const SudokuBoard& copyOfBoard = solver.GetBoardSolving();
+
+        if( !DoesEveryRowColHasAtLeastOnePossibility( copyOfBoard ) )
+        {
+            i--;
+            possibleSolvers.erase( possibleSolvers.begin() + i );
+            continue;
+        }
+
+        if( copyOfBoard.IsBoardValid() == false )
+        {
+            i--;
+            possibleSolvers.erase( possibleSolvers.begin() + i );
+            continue;
+        }
+
+        if( solver.DidSolvePuzzle() )
+        {
+            //Though solved we just want to advance one step
+            _sudokuBoard = boardWithSingleGuess;
+            return true;
         }
     }
 
@@ -217,4 +441,9 @@ bool SudokuSolver::SolveOneTakingGuess()
 bool SudokuSolver::DidSolvePuzzle() const
 {
    return _sudokuBoard.IsBoardSolved();
+}
+
+const SudokuBoard& SudokuSolver::GetBoardSolving() const
+{
+    return _sudokuBoard;
 }
