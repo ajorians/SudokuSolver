@@ -375,39 +375,35 @@ bool SudokuSolver::SolveOneTakingGuess()
         return std::get<1>(a).size() < std::get<1>(b).size();
     });
 
+    const auto& firstPossiblity = possibilities.front();
+    std::pair<int, int> location = std::get<0>( firstPossiblity );
+    std::vector<int> possibleValues = std::get<1>( firstPossiblity );
+    int row = location.first;
+    int col = location.second;
+
     std::vector<SudokuSolver> possibleSolvers;
 
-    for( const auto& possibility : possibilities )
+    for( int possibleValue : possibleValues )
     {
-        std::pair<int, int> location = std::get<0>( possibility );
-        std::vector<int> possibleValues = std::get<1>( possibility );
-        int row = location.first;
-        int col = location.second;
+        SudokuBoard copyOfBoard = _sudokuBoard;
 
-        for( int possibleValue : possibleValues )
+        copyOfBoard.SetAt(row, col, possibleValue);
+
+        //Does every row/col has at least a possibility
+        if( !DoesEveryRowColHasAtLeastOnePossibility( copyOfBoard ) )
         {
-            SudokuBoard copyOfBoard = _sudokuBoard;
-
-            copyOfBoard.SetAt(row, col, possibleValue);
-
-            //Does every row/col has at least a possibility
-            if( !DoesEveryRowColHasAtLeastOnePossibility( copyOfBoard ) )
-            {
-                assert(false);
-                continue;
-            }
-
-            SudokuSolver solver( copyOfBoard );
-
-            possibleSolvers.push_back( solver );
+            assert(false);
+            continue;
         }
+
+        SudokuSolver solver( copyOfBoard );
+
+        possibleSolvers.push_back( solver );
     }
 
-    for( int i=0; i<possibleSolvers.size(); i++ )
+    for( int i=0; i<possibleSolvers.size(); )
     {
-        SudokuSolver& solver = possibleSolvers[i];
-
-        SudokuBoard boardWithSingleGuess = solver.GetBoardSolving();
+        SudokuSolver solver = possibleSolvers[i];
 
         while( solver.SolveOneMissingValue() || solver.SolveOne3x3OnlySpotForValue() || solver.SolveOneRowColSpotForValue() || solver.SolveOneTryingPossibilities() );
 
@@ -415,14 +411,12 @@ bool SudokuSolver::SolveOneTakingGuess()
 
         if( !DoesEveryRowColHasAtLeastOnePossibility( copyOfBoard ) )
         {
-            i--;
             possibleSolvers.erase( possibleSolvers.begin() + i );
             continue;
         }
 
         if( copyOfBoard.IsBoardValid() == false )
         {
-            i--;
             possibleSolvers.erase( possibleSolvers.begin() + i );
             continue;
         }
@@ -430,9 +424,32 @@ bool SudokuSolver::SolveOneTakingGuess()
         if( solver.DidSolvePuzzle() )
         {
             //Though solved we just want to advance one step
-            _sudokuBoard = boardWithSingleGuess;
+            _sudokuBoard = possibleSolvers[i].GetBoardSolving();
             return true;
         }
+
+        i++;
+    }
+
+    for( int i=0; i<possibleSolvers.size(); )
+    {
+        SudokuSolver solver = possibleSolvers[i];
+
+        while( solver.SolveOneStep() );
+
+        if( solver.DidSolvePuzzle() )
+        {
+            //Though solved we just want to advance one step
+            _sudokuBoard = possibleSolvers[i].GetBoardSolving();
+            return true;
+        }
+        else
+        {
+            possibleSolvers.erase( possibleSolvers.begin() + i );
+            continue;
+        }
+
+        i++;
     }
 
    return false;
