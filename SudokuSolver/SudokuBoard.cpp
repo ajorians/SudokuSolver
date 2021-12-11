@@ -91,6 +91,42 @@ bool SudokuBoard::IsBoardValid() const
             }
         }
     }
+    if( _boardType == KingSudoku )
+    {
+        for( int row=0; row < 9; row++)
+        {
+            for( int col=0; col<9; col++)
+            {
+                int value = GetAt( row, col );
+                if( value == 0 )
+                    continue;
+
+                std::vector<int> values = GetNumbersKingsDistance( row, col );
+                if( std::find( values.begin(), values.end(), value ) != values.end() )
+                {
+                    return false;
+                }
+            }
+        }
+    }
+    else if( _boardType == QueenSudoku )
+    {
+        for( int row=0; row < 9; row++)
+        {
+            for( int col=0; col<9; col++)
+            {
+                int value = GetAt( row, col );
+                if( value == 0 )
+                    continue;
+
+                std::vector<int> values = GetNumbersQueensDistance( row, col );
+                if( std::find( values.begin(), values.end(), value ) != values.end() )
+                {
+                    return false;
+                }
+            }
+        }
+    }
 
     return true;
 }
@@ -170,6 +206,77 @@ std::vector<int> SudokuBoard::GetNumbersKnightsDistance( int row, int col ) cons
         if( value == 0)
             continue;
         result.push_back( value );
+    }
+
+    return result;
+}
+
+std::vector<int> SudokuBoard::GetNumbersKingsDistance( int row, int col ) const
+{
+    std::vector<int> result;
+    std::vector<std::pair<int, int> > offsets{ {-1, -1 }, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1} };
+    for( const auto& offset : offsets )
+    {
+        int x = col + offset.first;
+        int y = row + offset.second;
+
+        if( x < 0 || x > 8 || y < 0 || y > 8 )
+            continue;
+
+        int value = GetAt( y, x );
+        if( value == 0)
+            continue;
+        result.push_back( value );
+    }
+
+    return result;
+}
+
+std::vector<int> SudokuBoard::GetNumbersQueensDistance( int row, int col ) const
+{
+    std::vector<int> result;
+
+    for( int r = 0; r < 9; r++ )
+    {
+        int value = GetAt( r, col);
+        if( value == 0)
+            continue;
+        if( row == r )
+            continue;
+
+        result.push_back( value );
+    }
+
+    for( int c = 0; c < 9; c++ )
+    {
+        int value = GetAt( row, c);
+        if( value == 0)
+            continue;
+        if( col == c )
+            continue;
+        result.push_back( value );
+    }
+
+    for( int x = 0; x < 9; x++ )
+    {
+        std::vector<std::pair<int, int> > positions{ {row-x, col-x }, {row-x, col+x}, {row+x, col-x}, {row+x, col+x} };
+
+        for( const auto& position : positions )
+        {
+            int r = position.first;
+            int c = position.second;
+
+            if( c < 0 || c > 8 || r < 0 || r > 8 )
+                continue;
+
+            if( r == row && c == col )
+                continue;
+
+            int value = GetAt( r, c );
+            if( value == 0)
+                continue;
+            result.push_back( value );
+        }
     }
 
     return result;

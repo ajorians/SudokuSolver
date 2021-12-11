@@ -30,6 +30,14 @@ namespace
         {
             RemoveTheseNumbers( possibleValues, sudokuBoard.GetNumbersKnightsDistance( row, col ) );
         }
+        else if( sudokuBoard.GetBoardType() == KingSudoku )
+        {
+            RemoveTheseNumbers( possibleValues, sudokuBoard.GetNumbersKingsDistance( row, col ) );
+        }
+        else if( sudokuBoard.GetBoardType() == QueenSudoku )
+        {
+            RemoveTheseNumbers( possibleValues, sudokuBoard.GetNumbersQueensDistance( row, col ) );
+        }
     }
 
     bool CouldSpotHaveValue( const SudokuBoard& sudokuBoard, int row, int col, int possibility )

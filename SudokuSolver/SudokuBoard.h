@@ -7,7 +7,9 @@
 enum BoardType
 {
    Traditional,
-   KnightSudoku
+   KnightSudoku,
+   KingSudoku,
+   QueenSudoku
 };
 
 class SudokuBoard
@@ -27,6 +29,8 @@ public:
    std::vector<int> GetNumbersOnCol( int col ) const;
    std::vector<int> GetNumbersIn3x3Grid( int gridIndex ) const;
    std::vector<int> GetNumbersKnightsDistance( int row, int col ) const;
+   std::vector<int> GetNumbersKingsDistance( int row, int col ) const;
+   std::vector<int> GetNumbersQueensDistance( int row, int col ) const;
 
    int GetGridIndex( int row, int col ) const;
 
