@@ -36,7 +36,11 @@ namespace
         }
         else if( sudokuBoard.GetBoardType() == QueenSudoku )
         {
-            RemoveTheseNumbers( possibleValues, sudokuBoard.GetNumbersQueensDistance( row, col ) );
+            auto queenDistanceNumbers = sudokuBoard.GetNumbersQueensDistance( row, col );
+            if( std::find( queenDistanceNumbers.begin(), queenDistanceNumbers.end(), 9 ) != queenDistanceNumbers.end() )
+            {
+                RemoveTheseNumbers( possibleValues, std::vector<int>{ 9 } );
+            }
         }
     }
 

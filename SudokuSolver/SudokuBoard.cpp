@@ -119,10 +119,13 @@ bool SudokuBoard::IsBoardValid() const
                 if( value == 0 )
                     continue;
 
-                std::vector<int> values = GetNumbersQueensDistance( row, col );
-                if( std::find( values.begin(), values.end(), value ) != values.end() )
+                if( value == 9 )
                 {
-                    return false;
+                    std::vector<int> values = GetNumbersQueensDistance( row, col );
+                    if( std::find( values.begin(), values.end(), value ) != values.end() )
+                    {
+                        return false;
+                    }
                 }
             }
         }
